@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Keygen/Keygen.iml" filepath="$PROJECT_DIR$/Keygen/Keygen.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Project_1_new.iml" filepath="$PROJECT_DIR$/Project_1_new.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Receiver/Receiver.iml" filepath="$PROJECT_DIR$/Receiver/Receiver.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Sender/Sender.iml" filepath="$PROJECT_DIR$/Sender/Sender.iml" />
+    </modules>
+  </component>
+</project>
