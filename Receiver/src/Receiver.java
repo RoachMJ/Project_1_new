@@ -1,84 +1,56 @@
-/**
- * Created by Roach on 10/2/17.
- */
-import java.io.*;
-import java.math.BigInteger;
+
+
 import java.security.DigestInputStream;
 import java.security.KeyFactory;
+import java.io.*;
+import java.math.BigInteger;
 import java.security.MessageDigest;
-import java.security.PublicKey;
-import java.security.spec.RSAPublicKeySpec;
 import java.util.Scanner;
 import javax.crypto.Cipher;
+import java.security.PublicKey;
+import java.security.spec.RSAPublicKeySpec;
 import java.util.Arrays;
+import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.CipherOutputStream;
 
-
-public class Reciever {
+public class Receiver {
 
     public static void main(String[] args) throws Exception{
+        // decryption of file
 
-        // The Files
-        //   symmetric.key
-        //   XPrivate.key
-        //   XPublic.key
-        // are produced by running
-        // the program in KeyGen/KeyGen
-        //
-        //   IV.byteArray is produced
-        //   by Sender
-
-        // symmetric.key and XPublic.key are read from files
-        String KXY = readKXYFromFile("symmetric.key");
-        PublicKey KXPublic = readPublicKeyFromFile("XPublic.key");
-
-        // Get message file name from user System input
+        String KXY = readKXY("symmetric.key"); // read in symmetric key
+        PublicKey KXPublic = readPubKey("XPublic.key"); // read in public key
         Scanner in = new Scanner(System.in);
         System.out.print("Input the name of the message file: ");
         String plainText = in.next();
-        in.close();
-
-        // Read IV from IV.byteArray
-        byte[] IV = readBytesFromFile("IV.byteArray");
-
-        // Display IV
+        in.close();     // read in message.aescypher
+        byte[] IV = getBytes("IV.byteArray"); // read in byte array iv
         System.out.println("\n");
-        System.out.println("IV read from File:");
-        toHexa(IV);
-
-        decryptAES(KXY, "message.aescipher", "message.ds-msg",IV);
-
+        hexadecimalConversion(IV);
+        AESDecryption(KXY, "message.aescipher", "message.ds-msg",IV);
         byte[] digSig = getMessage(plainText,"message.ds-msg");
-
-
         System.out.println("\n");
         System.out.println("Cipher Text of Digital Signature:");
-        toHexa(digSig);
+        hexadecimalConversion(digSig);
         System.out.println();
-
-
-        byte[] receivedHash = decryptRSA(KXPublic,digSig);
-        saveToFile("message.dd",receivedHash);
+        byte[] receivedHash = RSADecryption(KXPublic,digSig);
+        createfile("message.dd",receivedHash);
         System.out.println();
         System.out.println("Received hash:");
-        toHexa(receivedHash);
+        hexadecimalConversion(receivedHash);
         System.out.println();
-
         byte[] hash = messageDigest(plainText);
-
         System.out.println(compareHashes(receivedHash,hash));
     }
 
-    public static  void decryptAES(String Key, String inputFile, String outputFile,byte[] IV)
+    public static  void AESDecryption(String Key, String inputFile, String outputFile, byte[] IV)
             throws Exception {
         aesCrypt(Cipher.DECRYPT_MODE, Key, inputFile, outputFile,IV);
     }
 
 
-    public static void aesCrypt(int cipherMode, String key, String inputFile,
-                                String outputFile,byte[] IV) throws Exception {
+    public static void aesCrypt(int cipherMode, String key, String inputFile, String outputFile, byte[] IV) throws Exception {
         SecretKeySpec secretKey = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
         Cipher cipher = Cipher.getInstance("AES/CFB/NoPadding", "SunJCE");
         cipher.init(cipherMode, secretKey, new IvParameterSpec(IV));
@@ -139,42 +111,27 @@ public class Reciever {
         }
 
     }
-
-    /*
-     This encryptRSA method uses RSA encryption with a Private Key to
-     encrypt the SHA256 hash of the message text.
-    */
-    public static byte[] decryptRSA(PublicKey KXPublic, byte[] hash) throws Exception {
+    public static byte[] RSADecryption(PublicKey KXPublic, byte[] hash) throws Exception {
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.DECRYPT_MODE, KXPublic);
         return cipher.doFinal(hash);
     }
-
-    /*
-     readBytesFromFile() is used here primarily to read the
-     IV from the IV.bytearray file.
-    */
-    public static byte[] readBytesFromFile(String fileName) {
+    public static byte[] getBytes(String fileName) {       // reading iv.bytearray
         File file = new File(fileName);
         FileInputStream fileInputStream = null;
-        byte[] bFile = new byte[(int) file.length()];
+        byte[] RecievedFile = new byte[(int) file.length()];
         try{
             // convert file into array of bytes
             fileInputStream = new FileInputStream(file);
-            fileInputStream.read(bFile);
+            fileInputStream.read(RecievedFile);
             fileInputStream.close();
         }
         catch (Exception e) {
             e.printStackTrace();
         }
-        return bFile;
-
+        return RecievedFile;
     }
-
-    /**
-     * toHexa() takes a byte array and outputs it to the console
-     */
-    public static void toHexa(byte [] in) {
+    public static void hexadecimalConversion(byte [] in) {
         for (int k=0, j=0; k<in.length; k++, j++) {
             System.out.format("%2X ", new Byte(in[k])) ;
             if (j >= 15) {
@@ -184,11 +141,7 @@ public class Reciever {
         }
     }
 
-    /**
-     * saveToFile() takes a fileName and a byte array, creates a file with that
-     * filename and writes to it.
-     */
-    public static void saveToFile(String fileName, byte [] arr) throws Exception {
+    public static void createfile(String fileName, byte [] arr) throws Exception {
         System.out.println("Write to " + fileName + "\n");
         FileOutputStream fos = new FileOutputStream(fileName);
         try {
@@ -199,12 +152,7 @@ public class Reciever {
         }
     }
 
-    /**
-     * md() stands for message digest. It is provided by Dr. Weiying Zhu.
-     * It takes a String representing a filename, opens that corresponding file
-     * and creates a SHA256 hash from the contents of the file.  It returns the
-     * file's hash as a byte array.
-     */
+
     public static byte[] messageDigest(String f) throws Exception {
         BufferedInputStream file = new BufferedInputStream(new FileInputStream(f));
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
@@ -222,12 +170,8 @@ public class Reciever {
         return hash;
     }
 
-    /**
-     * readKXYFromFile() takes a String representing the name
-     * of the symmetric key and, prints and returns a String representing
-     * the symmetric key.
-     */
-    public static String readKXYFromFile(String keyFileName)
+
+    public static String readKXY(String keyFileName)
             throws IOException {
         InputStream in =
                 Receiver.class.getResourceAsStream(keyFileName);
@@ -240,18 +184,14 @@ public class Reciever {
             String key = m.toString();
             return key;
         } catch (Exception e) {
-            throw new RuntimeException("Spurious serialisation error", e);
+            throw new RuntimeException("error", e);
         } finally {
             oin.close();
         }
     }
 
-    /**
-     * readPrivKeyFromFile takes a String representing the filename
-     * of the File that contains the private key parameters generated by
-     * KeyGen.  It creates and returns the PrivateKey
-     */
-    public static PublicKey readPublicKeyFromFile(String keyFileName)
+
+    public static PublicKey readPubKey(String keyFileName)
             throws IOException {
         InputStream in =
                 Receiver.class.getResourceAsStream(keyFileName);
@@ -267,7 +207,7 @@ public class Reciever {
             PublicKey key = factory.generatePublic(keySpec);
             return key;
         } catch (Exception e) {
-            throw new RuntimeException("Spurious serialisation error", e);
+            throw new RuntimeException(" error", e);
         } finally {
             oin.close();
         }
