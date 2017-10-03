@@ -1,5 +1,5 @@
 /**
- * Created by Roach on 10/2/17.
+ * Created by Roach + Miller on 10/2/17.
  */
 import java.math.BigInteger;
 import java.io.*;
@@ -16,86 +16,85 @@ public class KeyGen {
     public KeyGen() {
     }
 
-    ;
-
     public static void main(String[] args) throws Exception {
-        //Generate two pairs of keys (X and Y).
-        SecureRandom random = new SecureRandom();
+    	
+        
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        //1024: key size in bits
-        generator.initialize(1024, random);
-        KeyPair pairX = generator.generateKeyPair();
-        Key kXpublic = pairX.getPublic();
-        Key kXprivate = pairX.getPrivate();
-        KeyPair pairY = generator.generateKeyPair();
-        Key kYpublic = pairY.getPublic();
-        Key kYprivate = pairY.getPrivate();
-        //user input for symmetric key generation
-        Scanner input = new Scanner(System.in);
+        SecureRandom secRandom = new SecureRandom();
+        
+        generator.initialize(1024, secRandom);
+        
+        
+        KeyPair Y = generator.generateKeyPair();
+        Key yPublicKey = Y.getPublic();
+        Key yPrivateKey = Y.getPrivate();
+        
+        KeyPair X = generator.generateKeyPair();
+        Key xPublicKey = X.getPublic();
+        Key xPrivateKey = X.getPrivate();
+        
+        
+        Scanner in = new Scanner(System.in);
         int counter = 0;
-        String kXY = "";
-        System.out.print("Enter 16 characters: ");
-        while (kXY.length() < 16 || kXY.length() > 16) {
-            kXY = input.nextLine();
-            if (kXY.length() < 16 || kXY.length() > 16) {
-                System.out.println("You must input 16 characters for the Key");
-                System.out.print("Enter 16 characters: ");
+        String symKey = "";
+        System.out.print("Please enter a 16 character string: ");
+        while (symKey.length() < 16 || symKey.length() > 16) {
+            symKey = in.nextLine();
+            if (symKey.length() < 16 || symKey.length() > 16) {
+                System.out.println("Key must be 16 characters long");
+                System.out.print("Please enter a 16 character string: ");
             }
         }
-        input.close();
-        //get the parameters of the keys: modulus and exponet
-        KeyFactory factory = KeyFactory.getInstance("RSA");
-        RSAPublicKeySpec pubKXSpec = factory.getKeySpec(kXpublic,
+        in.close();
+        
+        
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        RSAPublicKeySpec XKeyPublicSpec = keyFactory.getKeySpec(xPublicKey,
                 RSAPublicKeySpec.class);
-        RSAPrivateKeySpec privKXSpec = factory.getKeySpec(kXprivate,
+        RSAPrivateKeySpec XKeyPrivateSpec = keyFactory.getKeySpec(xPrivateKey,
                 RSAPrivateKeySpec.class);
-        RSAPublicKeySpec pubKYSpec = factory.getKeySpec(kYpublic,
+        RSAPublicKeySpec YKeyPublicSpec = keyFactory.getKeySpec(yPublicKey,
                 RSAPublicKeySpec.class);
-        RSAPrivateKeySpec privKYSpec = factory.getKeySpec(kYprivate,
+        RSAPrivateKeySpec YKeyPrivateSpec = keyFactory.getKeySpec(yPrivateKey,
                 RSAPrivateKeySpec.class);
-        //save the parameters of the keys to the files, and save symmetric key
-        saveToFilePair("XPublic.key", pubKXSpec.getModulus(),
-                pubKXSpec.getPublicExponent());
-        saveToFilePair("XPrivate.key", privKXSpec.getModulus(),
-                privKXSpec.getPrivateExponent());
-        saveToFilePair("YPublic.key", pubKYSpec.getModulus(),
-                pubKYSpec.getPublicExponent());
-        saveToFilePair("YPrivate.key", privKYSpec.getModulus(),
-                privKYSpec.getPrivateExponent());
-        saveToFileKXY("symmetric.key", kXY);
+        
+        writeKeys("XPublic.key", XKeyPublicSpec.getModulus(),
+                XKeyPublicSpec.getPublicExponent());
+        writeKeys("XPrivate.key", XKeyPrivateSpec.getModulus(),
+                XKeyPrivateSpec.getPrivateExponent());
+        writeKeys("YPublic.key", YKeyPublicSpec.getModulus(),
+                YKeyPublicSpec.getPublicExponent());
+        writeKeys("YPrivate.key", YKeyPrivateSpec.getModulus(),
+                YKeyPrivateSpec.getPrivateExponent());
+        writeMessage("symmetric.key", symKey);
     }
 
-    public static void saveToFilePair(String fileName,
-                                      BigInteger mod, BigInteger exp) throws IOException {
-        System.out.println();
-        System.out.println("Write to " + fileName + ": " +
-                "\n---------------------------------\n" +
-                "modulus = " + mod.toString() + ",\nexponent = "
-                + exp.toString() + "\n");
-        ObjectOutputStream oout = new ObjectOutputStream(
+    public static void writeMessage(String fileName,
+            String message) throws IOException {
+    			ObjectOutputStream outStream = new ObjectOutputStream(
+    			new BufferedOutputStream(new FileOutputStream(fileName)));
+    			try {
+    				outStream.writeObject(message);
+    			} catch (Exception e) {
+    				throw new IOException("File writing error", e);
+    			} finally {
+    				outStream.close();
+    				}
+    }
+    
+    public static void writeKeys(String fileName,
+                                      BigInteger modulus, BigInteger exponent) throws IOException {
+    	
+        ObjectOutputStream outStream = new ObjectOutputStream(
                 new BufferedOutputStream(new FileOutputStream(fileName)));
         try {
-            oout.writeObject(mod);
-            oout.writeObject(exp);
+            outStream.writeObject(modulus);
+            outStream.writeObject(exponent);
         } catch (Exception e) {
-            throw new IOException("Unexpected error", e);
+            throw new IOException("File writing error", e);
         } finally {
-            oout.close();
+            outStream.close();
         }
     }
 
-    public static void saveToFileKXY(String fileName,
-                                     String msg) throws IOException {
-        System.out.println("Write to " + fileName + ": "
-                + "\n---------------------------------\n" + msg + "\n");
-        ObjectOutputStream oout = new ObjectOutputStream(
-                new BufferedOutputStream(new FileOutputStream(fileName)));
-        try {
-            oout.writeObject(msg);
-        } catch (Exception e) {
-            throw new IOException("Unexpected error", e);
-        } finally {
-            oout.close();
-        }
-    }
 }
